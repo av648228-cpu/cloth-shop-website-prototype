@@ -109,3 +109,43 @@ function initEnquiry(form) {
     say('Opening your email app. If nothing opens, write to ' + CONFIG.enquiryEmail + ' or call us.', true);
   });
 }
+
+// PERFORMANCE: Prefetch internal pages when visitors show navigation intent.
+(function () {
+  const prefetched = new Set();
+
+  function prefetchPage(event) {
+    const element = event.target;
+    if (!(element instanceof Element)) return;
+
+    const link = element.closest('a[href]');
+
+    if (
+      !link ||
+      link.target === '_blank' ||
+      link.hasAttribute('download')
+    ) return;
+
+    const url = new URL(link.href, window.location.href);
+
+    // Only prefetch pages hosted on this website.
+    if (url.origin !== window.location.origin) return;
+
+    if (!/\.html?$/i.test(url.pathname)) return;
+    if (url.pathname === window.location.pathname) return;
+    if (prefetched.has(url.href)) return;
+
+    prefetched.add(url.href);
+
+    const hint = document.createElement('link');
+    hint.rel = 'prefetch';
+    hint.href = url.href;
+    document.head.appendChild(hint);
+  }
+
+  document.addEventListener('pointerover', prefetchPage, {
+    passive: true
+  });
+
+  document.addEventListener('focusin', prefetchPage);
+})();
